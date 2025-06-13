@@ -23,7 +23,7 @@ RUN echo -e "worker_processes 1;\n\nevents { worker_connections 1024; }\n\nhttp 
 EXPOSE 8080 8081 8082
 
 # Create a script to run both Smocker and Nginx
-RUN echo -e "#!/bin/sh\n/opt/smocker --mock-server-listen-port=8081 --config-listen-port=8082 &\nnginx -g 'daemon off;'" > /start.sh
+RUN echo -e "#!/bin/sh\n/opt/smocker/smocker --mock-server-listen-port=8081 --config-listen-port=8082 &\nnginx -g 'daemon off;'" > /start.sh
 RUN chmod +x /start.sh
 
 # Run the startup script
