@@ -10,9 +10,10 @@ RUN mkdir -p /opt/smocker
 WORKDIR /opt/smocker
 
 # Download and extract the latest Smocker release
-RUN wget -P /tmp https://github.com/smocker-dev/smocker/releases/latest/download/smocker.tar.gz && \
-    tar xf /tmp/smocker.tar.gz -C /opt/smocker && \
-    rm /tmp/smocker.tar.gz
+RUN wget -P /tmp https://github.com/smocker-dev/smocker/releases/latest/download/smocker.tar.gz && 
+tar xf /tmp/smocker.tar.gz -C /opt/smocker && 
+chmod +x /opt/smocker/smocker && 
+rm /tmp/smocker.tar.gz
 
 # Create custom nginx.conf
 RUN mkdir -p /etc/nginx
