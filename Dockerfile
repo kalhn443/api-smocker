@@ -1,19 +1,18 @@
-FROM alpine:3.20
+FROM debian:bullseye-slim
 
 # Install dependencies: wget, tar, and nginx
-RUN apk add --no-cache wget tar nginx
+RUN apt-get update && apt-get install -y wget tar nginx && rm -rf /var/lib/apt/lists/*
 
 # Create directory for Smocker and set as working directory
-RUN mkdir -p /opt/smocker && cd /opt/smocker
-
-# Download and extract the latest Smocker release
-RUN wget -P /tmp https://github.com/smocker-dev/smocker/releases/latest/download/smocker.tar.gz && \
-    tar -xf /tmp/smocker.tar.gz -C /opt/smocker && \
-    chmod +x /opt/smocker/smocker && \
-    rm /tmp/smocker.tar.gz
-
-# Set working directory
+RUN mkdir -p /opt/smocker
 WORKDIR /opt/smocker
+
+# Download and extract the latest Smocker release with debug
+RUN wget -P /tmp https://github.com/smocker-dev/smocker/releases/latest/download/smocker_linux_amd64.tar.gz && \
+    tar -xvf /tmp/smocker_linux_amd64.tar.gz -C /opt/smocker && \
+    ls -l /opt/smocker && \
+    chmod +x /opt/smocker/smocker && \
+    rm /tmp/smocker_linux_amd64.tar.gz
 
 # Create custom nginx.conf
 RUN mkdir -p /etc/nginx && \
