@@ -25,7 +25,7 @@ COPY <<EOF /app/start.sh
 #!/bin/bash
 # Start smocker in background with explicit binding to all interfaces
 echo "Starting smocker..."
-nohup /app/smocker -mock-server-listen-port=8081 -config-listen-port=8082 -mock-server-listen-host=0.0.0.0 -config-listen-host=0.0.0.0 > /dev/null 2>&1 &
+/app/smocker -mock-server-listen-port=8081 -config-listen-port=8082 &
 
 # Wait longer for smocker to start and verify it's running
 echo "Waiting for smocker to start..."
