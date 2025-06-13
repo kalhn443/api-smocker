@@ -11,6 +11,8 @@ COPY . /opt/smocker/
 
 # Set permissions for the smocker binary
 RUN chmod +x /opt/smocker/smocker
+ls /opt/smocker/
+
 
 # Set working directory
 WORKDIR /opt/smocker
