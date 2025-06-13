@@ -1,19 +1,29 @@
-FROM ubuntu:22.04
+FROM alpine:3.20
 
-# Install nginx and curl
-RUN apt-get update && \
-    apt-get install -y curl nginx
+# Install dependencies: wget, tar, and nginx
+RUN apk add --no-cache wget tar nginx
 
-# Download Smocker
-RUN curl -L https://github.com/SmockerDev/smocker/releases/download/v0.19.0/smocker-linux-amd64 -o /usr/local/bin/smocker && \
-    chmod +x /usr/local/bin/smocker
+# Create directory for Smocker
+RUN mkdir -p /opt/smocker
 
-# Copy Nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
+# Set working directory
+WORKDIR /opt/smocker
 
-# Expose Nginx port
-EXPOSE 8080
+# Download and extract the latest Smocker release
+RUN wget -P /tmp https://github.com/smocker-dev/smocker/releases/latest/download/smocker.tar.gz && \
+    tar xf /tmp/smocker.tar.gz -C /opt/smocker && \
+    rm /tmp/smocker.tar.gz
 
-# Run Smocker with custom ports: --port=8081 (API), --ui-port=8082 (Admin UI)
-CMD /usr/local/bin/smocker -mock-server-listen-port=8081 -config-listen-port=8082 & \
-    nginx -g 'daemon off;'
+# Create custom nginx.conf
+RUN mkdir -p /etc/nginx
+RUN echo -e "worker_processes 1;\n\nevents { worker_connections 1024; }\n\nhttp {\n    server {\n        listen 80;\n\n        location / {\n            proxy_pass http://localhost:8080;\n        }\n\n        location /admin/ {\n            proxy_pass http://localhost:8081;\n        }\n    }\n}" > /etc/nginx/nginx.conf
+
+# Expose ports for Nginx (80) and Smocker (8080, 8081)
+EXPOSE 80 8080 8081
+
+# Create a script to run both Smocker and Nginx
+RUN echo -e "#!/bin/sh\n./smocker --mock-server-listen-port=8080 --config-listen-port=8081 &\nnginx -g 'daemon off;'" > /start.sh
+RUN chmod +x /start.sh
+
+# Run the startup script
+CMD ["/start.sh"]
