@@ -15,5 +15,5 @@ COPY nginx.conf /etc/nginx/nginx.conf
 EXPOSE 8080
 
 # Run Smocker with custom ports: --port=8081 (API), --ui-port=8082 (Admin UI)
-CMD /usr/local/bin/smocker --port=8081 --ui-port=8082 & \
+CMD /usr/local/bin/smocker -mock-server-listen-port=8081 -config-listen-port=8082 & \
     nginx -g 'daemon off;'
