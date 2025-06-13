@@ -8,10 +8,11 @@ RUN mkdir -p /opt/smocker
 
 # Copy the local smocker binary to the container
 COPY . /opt/smocker/
+RUN ls /opt/smocker/
 
 # Set permissions for the smocker binary
 RUN chmod +x /opt/smocker/smocker
-ls /opt/smocker/
+
 
 
 # Set working directory
