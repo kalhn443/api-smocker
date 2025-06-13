@@ -1,4 +1,4 @@
-FROM smocker/smocker:latest
+FROM  ghcr.io/smocker-dev/smocker:latest
 
 # Install nginx
 RUN apk add --no-cache nginx
