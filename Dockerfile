@@ -1,59 +1,33 @@
-# Use official nginx image as base
-FROM nginx:alpine
+# Use Alpine Linux as base image for smaller size
+FROM alpine:latest
 
 # Install required packages
 RUN apk add --no-cache \
-    bash \
-    curl \
-    procps
+    wget \
+    tar \
+    ca-certificates
 
-# Create working directory
-WORKDIR /app
+# Create smocker directory
+RUN mkdir -p /opt/smocker
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+# Set working directory
+WORKDIR /opt/smocker
 
-# Copy smocker binary
-COPY smocker /app/smocker
-COPY /client /app/client
-
-# Make smocker executable
-RUN chmod +x /app/smocker
-
-# Copy startup script
-COPY <<EOF /app/start.sh
-#!/bin/bash
-# Start smocker in background with explicit binding to all interfaces
-echo "Starting smocker..."
-/app/smocker -mock-server-listen-port=8081 -config-listen-port=8082 &
-
-# Wait longer for smocker to start and verify it's running
-echo "Waiting for smocker to start..."
-for i in {1..30}; do
-    if curl -s http://localhost:8081 > /dev/null 2>&1; then
-        echo "Smocker is ready!"
-        break
-    fi
-    echo "Waiting... ($i/30)"
-    sleep 1
-done
-
-# Check if smocker is actually running
-if ! curl -s http://localhost:8081 > /dev/null 2>&1; then
-    echo "ERROR: Smocker failed to start properly"
-    exit 1
-fi
-
-# Start nginx in foreground
-echo "Starting nginx..."
-exec nginx -g 'daemon off;'
-EOF
-
-# Make startup script executable
-RUN chmod +x /app/start.sh
+# Download and extract smocker
+RUN wget -O /tmp/smocker.tar.gz https://github.com/smocker-dev/smocker/releases/latest/download/smocker.tar.gz && \
+    tar xf /tmp/smocker.tar.gz -C /opt/smocker && \
+    rm /tmp/smocker.tar.gz && \
+    chmod +x /opt/smocker/smocker
 
 # Expose ports
+# Mock server port
 EXPOSE 8080
+# Config/Admin UI port  
+EXPOSE 8081
 
-# Use startup script as entrypoint
-CMD ["/app/start.sh"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8081 || exit 1
+
+# Run smocker
+CMD ["./smocker", "-mock-server-listen-port=8080", "-config-listen-port=8081"]
