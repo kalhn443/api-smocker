@@ -1,19 +1,7 @@
-FROM alpine:3.20
+FROM smocker/smocker:latest
 
-# Install dependencies: wget, tar, and nginx
-RUN apk add --no-cache wget tar nginx
-
-# Create directory for Smocker
-RUN mkdir -p /opt/smocker
-
-# Set working directory
-WORKDIR /opt/smocker
-
-# Download and extract the latest Smocker release
-RUN wget -P /tmp https://github.com/smocker-dev/smocker/releases/latest/download/smocker.tar.gz && \
-    tar -xf /tmp/smocker.tar.gz -C /opt/smocker && \
-    chmod +x /opt/smocker/smocker && \
-    rm /tmp/smocker.tar.gz
+# Install nginx
+RUN apk add --no-cache nginx
 
 # Create custom nginx.conf
 RUN mkdir -p /etc/nginx && \
@@ -23,7 +11,7 @@ RUN mkdir -p /etc/nginx && \
 EXPOSE 8080
 
 # Create a script to run both Smocker and Nginx
-RUN echo -e "#!/bin/sh\n/opt/smocker/smocker --mock-server-listen-port=8081 --config-listen-port=8082 &\nnginx -g 'daemon off;'" > /start.sh && \
+RUN echo -e "#!/bin/sh\nsmocker --mock-server-listen-port=8081 --config-listen-port=8082 &\nnginx -g 'daemon off;'" > /start.sh && \
     chmod +x /start.sh
 
 # Run the startup script
