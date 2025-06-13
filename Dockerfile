@@ -1,29 +1,47 @@
-FROM debian:bullseye-slim
+# Use official nginx image as base
+FROM nginx:alpine
 
-# Install dependencies: wget, tar, and nginx
-RUN apt-get update && apt-get install -y wget tar nginx && rm -rf /var/lib/apt/lists/*
+# Install required packages
+RUN apk add --no-cache \
+    bash \
+    curl \
+    procps
 
-# Create directory for Smocker and set as working directory
-RUN mkdir -p /opt/smocker
-WORKDIR /opt/smocker
+# Create working directory
+WORKDIR /app
 
-# Download and extract the latest Smocker release with debug
-RUN wget -P /tmp https://github.com/smocker-dev/smocker/releases/latest/download/smocker_linux_amd64.tar.gz && \
-    tar -xvf /tmp/smocker_linux_amd64.tar.gz -C /opt/smocker && \
-    ls -l /opt/smocker && \
-    chmod +x /opt/smocker/smocker && \
-    rm /tmp/smocker_linux_amd64.tar.gz
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Create custom nginx.conf
-RUN mkdir -p /etc/nginx && \
-    echo -e "worker_processes 1;\n\nevents { worker_connections 1024; }\n\nhttp {\n    server {\n        listen 8080;\n\n        location / {\n            proxy_pass http://localhost:8081;\n        }\n\n        location /admin/ {\n            proxy_pass http://localhost:8082;\n        }\n    }\n}" > /etc/nginx/nginx.conf
+# Copy smocker binary
+COPY smocker /app/smocker
+COPY /client /app/client
 
-# Expose port for Nginx (8080)
-EXPOSE 8080
 
-# Create a script to run both Smocker and Nginx
-RUN echo -e "#!/bin/sh\n/opt/smocker/smocker --mock-server-listen-port=8081 --config-listen-port=8082 &\nnginx -g 'daemon off;'" > /start.sh && \
-    chmod +x /start.sh
+# Make smocker executable
+RUN chmod +x /app/smocker
 
-# Run the startup script
-CMD ["/start.sh"]
+# Copy startup script
+COPY <<EOF /app/start.sh
+#!/bin/bash
+
+# Start smocker in background
+echo "Starting smocker..."
+nohup ./smocker -mock-server-listen-port=8081 -config-listen-port=8082 > /var/log/smocker.log 2>&1 &
+
+# Wait a moment for smocker to start
+sleep 2
+
+# Start nginx in foreground
+echo "Starting nginx..."
+exec nginx -g 'daemon off;'
+EOF
+
+# Make startup script executable
+RUN chmod +x /app/start.sh
+
+# Expose ports
+EXPOSE 80 8081 8082
+
+# Use startup script as entrypoint
+CMD ["/app/start.sh"]
