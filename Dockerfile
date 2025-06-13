@@ -1,29 +1,40 @@
-# Use Alpine Linux as base image for smaller size
+# Multi-stage build for better reliability
+FROM alpine:latest as downloader
+
+# Install required packages for downloading
+RUN apk add --no-cache wget file
+
+# Download smocker binary
+RUN wget -O /tmp/smocker https://github.com/smocker-dev/smocker/releases/latest/download/smocker_linux_amd64 && \
+    chmod +x /tmp/smocker && \
+    file /tmp/smocker
+
+# Final stage
 FROM alpine:latest
 
-# Install required packages
-RUN apk add --no-cache \
-    wget \
-    tar \
-    ca-certificates
+# Install runtime dependencies
+RUN apk add --no-cache ca-certificates libc6-compat
 
-# Create smocker directory
-RUN mkdir -p /opt/smocker
+# Create smocker directory and user
+RUN mkdir -p /opt/smocker && \
+    addgroup -g 1001 smocker && \
+    adduser -D -s /bin/sh -u 1001 -G smocker smocker
+
+# Copy smocker binary from downloader stage
+COPY --from=downloader /tmp/smocker /opt/smocker/smocker
+
+# Set ownership and permissions
+RUN chown -R smocker:smocker /opt/smocker && \
+    chmod +x /opt/smocker/smocker
 
 # Set working directory
 WORKDIR /opt/smocker
 
-# Download and extract smocker
-RUN wget -O /tmp/smocker.tar.gz https://github.com/smocker-dev/smocker/releases/latest/download/smocker.tar.gz && \
-    tar xf /tmp/smocker.tar.gz -C /opt/smocker && \
-    rm /tmp/smocker.tar.gz && \
-    chmod +x /opt/smocker/smocker
+# Switch to non-root user
+USER smocker
 
 # Expose ports
-# Mock server port
-EXPOSE 8080
-# Config/Admin UI port  
-EXPOSE 8081
+EXPOSE 8080 8081
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
