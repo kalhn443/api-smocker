@@ -1,19 +1,16 @@
 FROM alpine:3.20
 
 # Install dependencies: wget, tar, and nginx
-RUN apk add --no-cache nginx
+RUN apk add --no-cache wget tar nginx
 
-# Create directory for Smocker
-RUN mkdir -p /opt/smocker
+# Create directory for Smocker and set as working directory
+RUN mkdir -p /opt/smocker && cd /opt/smocker
 
-# Copy the local smocker binary to the container
-COPY . /opt/smocker/
-RUN ls /opt/smocker/
-
-# Set permissions for the smocker binary
-RUN chmod +x /opt/smocker/smocker
-
-
+# Download and extract the latest Smocker release
+RUN wget -P /tmp https://github.com/smocker-dev/smocker/releases/latest/download/smocker.tar.gz && \
+    tar -xf /tmp/smocker.tar.gz -C /opt/smocker && \
+    chmod +x /opt/smocker/smocker && \
+    rm /tmp/smocker.tar.gz
 
 # Set working directory
 WORKDIR /opt/smocker
@@ -22,7 +19,7 @@ WORKDIR /opt/smocker
 RUN mkdir -p /etc/nginx && \
     echo -e "worker_processes 1;\n\nevents { worker_connections 1024; }\n\nhttp {\n    server {\n        listen 8080;\n\n        location / {\n            proxy_pass http://localhost:8081;\n        }\n\n        location /admin/ {\n            proxy_pass http://localhost:8082;\n        }\n    }\n}" > /etc/nginx/nginx.conf
 
-# Expose ports for Nginx (8080)
+# Expose port for Nginx (8080)
 EXPOSE 8080
 
 # Create a script to run both Smocker and Nginx
